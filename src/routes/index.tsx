@@ -7,16 +7,16 @@ import { ChevronLeft, ChevronRight, Sparkles, X, Image as ImageIcon } from "luci
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "भोजपुरिया गुलाम · Multi-Channel Radio Hub" },
+      { title: "Master Music · Multi-Channel Radio Hub" },
       {
         name: "description",
         content:
-          "24/7 Multi-Channel Radio Hub — Bhojpuriya Ghulam Hits, Hindi Sad Songs, and DJ Afroz Power Zone Competition Mixes.",
+          "24/7 Master Music Multi-Channel Radio Hub — Bhojpuriya Ghulam Hits, Hindi Sad Songs, and DJ Afroz Power Zone Competition Mixes.",
       },
-      { property: "og:title", content: "भोजपुरिया गुलाम · Multi-Channel Radio Hub" },
+      { property: "og:title", content: "Master Music · Multi-Channel Radio Hub" },
       {
         property: "og:description",
-        content: "Bhojpuri Hits, Hindi Sad Songs, and DJ Afroz Power Zone.",
+        content: "Master Music Multi-Channel Radio Station Hub.",
       },
     ],
   }),
@@ -102,7 +102,7 @@ function Index() {
       </div>
 
       {/* Header Bar & Equalizer */}
-      <header className="relative z-10 flex w-full items-center justify-between px-4 py-4 sm:px-8">
+      <header className="relative z-10 flex w-full flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-8">
         {/* Equalizer Indicator */}
         <span className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-white/90 drop-shadow-md">
           <span className="flex h-4 items-end gap-[3px]">
@@ -119,27 +119,25 @@ function Index() {
             ))}
           </span>
           <span className="font-bold text-[11px] sm:text-xs tracking-widest" style={{ color: activeStation.themeColor }}>
-            LIVE RADIO HUB
+            MASTER MUSIC HUB
           </span>
         </span>
 
-        {/* Station Switcher Navigation Pills */}
-        <div className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/60 p-1 backdrop-blur-xl shadow-2xl">
+        {/* Station Switcher Navigation Pills (Extensible for future stations) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto rounded-full border border-white/20 bg-black/60 p-1 backdrop-blur-xl shadow-2xl max-w-full">
           {stations.map((st, idx) => {
             const isActive = idx === activeStationIndex;
             return (
               <button
                 key={st.id}
                 onClick={() => setActiveStationIndex(idx)}
-                className={`rounded-full px-3 py-1 text-xs font-bold transition-all duration-300 ${
+                className={`whitespace-nowrap rounded-full px-3.5 py-1 text-xs font-bold transition-all duration-300 ${
                   isActive
                     ? "bg-white text-black shadow-lg scale-105"
                     : "text-white/70 hover:text-white hover:bg-white/10"
                 }`}
               >
-                {st.name === "भोजपुरिया गुलाम" && "🔥 भोजपुरिया"}
-                {st.name === "दर्द-ए-दिल" && "💔 दर्द-ए-दिल"}
-                {st.name === "DJ AFROZ POWER ZONE" && "⚡ DJ AFROZ"}
+                {st.shortName || st.name}
               </button>
             );
           })}
@@ -196,6 +194,10 @@ function Index() {
                 <span className="text-cyan-400">POWER ZONE</span>
               </>
             )}
+            {activeStation.name !== "भोजपुरिया गुलाम" &&
+              activeStation.name !== "दर्द-ए-दिल" &&
+              activeStation.name !== "DJ AFROZ POWER ZONE" &&
+              activeStation.name}
           </h1>
 
           {/* Swipe Indicator Tip */}

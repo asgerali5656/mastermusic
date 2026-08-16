@@ -13,12 +13,13 @@ export type Song = {
 };
 
 export type Station = {
-  id: "bhojpuri" | "hindi-sad" | "dj-afroz";
+  id: string;
   name: string;
+  shortName: string;
   tagline: string;
   heroImage: string;
   badge: string;
-  themeColor: string; // CSS color for active state
+  themeColor: string; // CSS color string for active state / eq
   gradientOverlay: string;
   posters?: string[];
   songs: Song[];
@@ -77,10 +78,15 @@ const generate1000 = (baseList: Song[]): Song[] => {
   return list;
 };
 
+/**
+ * Extensible Master Station Registry
+ * To add a new radio channel in the future, simply push a new Station object here!
+ */
 export const stations: Station[] = [
   {
     id: "bhojpuri",
     name: "भोजपुरिया गुलाम",
+    shortName: "🔥 भोजपुरिया",
     tagline: "24 HOURS NON-STOP BHOJPURI HITS",
     heroImage: bhojpuriHero,
     badge: "🔥 BHOJPURI HITS",
@@ -91,6 +97,7 @@ export const stations: Station[] = [
   {
     id: "hindi-sad",
     name: "दर्द-ए-दिल",
+    shortName: "💔 दर्द-ए-दिल",
     tagline: "24 HOURS HINDI SAD & EMOTIONAL MELODIES",
     heroImage: sadSongsHero,
     badge: "💔 HINDI SAD RADIO",
@@ -101,6 +108,7 @@ export const stations: Station[] = [
   {
     id: "dj-afroz",
     name: "DJ AFROZ POWER ZONE",
+    shortName: "⚡ DJ AFROZ",
     tagline: "HIGH VOLTAGE DJ COMPETITIONS & BASS REMIXES",
     heroImage: afroz1,
     badge: "⚡ DJ COMPETITION ZONE",
@@ -110,3 +118,8 @@ export const stations: Station[] = [
     songs: generate1000(djAfrozBaseSongs),
   },
 ];
+
+/** Utility helper function to easily add new stations dynamically */
+export const registerNewStation = (newStation: Station) => {
+  stations.push(newStation);
+};
