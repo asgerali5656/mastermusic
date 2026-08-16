@@ -233,7 +233,12 @@ function Index() {
 
       {/* Bottom Controls & Centered Credit */}
       <div className="relative z-10 mb-[3vh] sm:mb-[5vh] flex w-full flex-col items-center justify-center px-3">
-        <JukeboxPlayer key={activeStation.id} stationSongs={activeStation.songs} stationId={activeStation.id} />
+        <JukeboxPlayer
+          key={activeStation.id}
+          stationSongs={activeStation.songs}
+          stationId={activeStation.id}
+          apiSearchQuery={activeStation.apiSearchQuery}
+        />
       </div>
 
       {/* DJ Afroz Poster Gallery Modal */}

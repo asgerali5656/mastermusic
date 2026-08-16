@@ -24,11 +24,17 @@ export type Station = {
   posters?: string[];
   domainUrl?: string; // Dedicated live Vercel production domain
   repoUrl?: string;   // GitHub repository URL
+  apiSearchQuery: string; // YouTube Data API v3 live query
   songs: Song[];
 };
 
 // 1. Bhojpuriya Ghulam Songs
 const bhojpuriBaseSongs: Song[] = [
+  { id: "ahc8zhtzQSk", title: "लहंगा से महंगा", artist: "Pawan Singh · Shivani Singh", tag: "2026 Trending Hit" },
+  { id: "JUhcNNwha7w", title: "कमर में दागी", artist: "Khesari Lal Yadav · Shilpi Raj", tag: "2026 Viral Hit" },
+  { id: "u9BdaJTWeiw", title: "बर्बादी होई", artist: "Shilpi Raj", tag: "2026 Superhit" },
+  { id: "1iBDh00xMQw", title: "रुपया देख के बोरा में", artist: "Tuntun Yadav", tag: "2026 Hit" },
+  { id: "Ljg68YzlQJo", title: "ओठलाली पs", artist: "Khesari Lal Yadav", tag: "Blockbuster" },
   { id: "4auB2EP-MZI", title: "लॉलीपॉप लागेलू", artist: "Pawan Singh", tag: "All Time Classic" },
   { id: "zmwfd8x0DrM", title: "मरून कलर सड़िया", artist: "Nirahua · Neelkamal Singh", tag: "Trending Hit" },
   { id: "H5kMiuyRFJU", title: "छलकता हमरो जवनिया", artist: "Khesari Lal Yadav", tag: "Blockbuster" },
@@ -52,17 +58,17 @@ const hindiSadBaseSongs: Song[] = [
   { id: "BBAyRBTfsOU", title: "वास्ते (Vaaste)", artist: "Dhvani Bhanushali · Nikhil D'Souza", tag: "Romantic Melancholy" },
 ];
 
-// 3. DJ Afroz Power Zone Songs
+// 3. DJ Afroz Power Zone Songs - Pure 100% Full Bass Boosted DJ Competition Catalog
 const djAfrozBaseSongs: Song[] = [
-  { id: "4auB2EP-MZI", title: "लॉलीपॉप लागेलू (DJ Power Remix)", artist: "DJ Afroz · Pawan Singh", tag: "Bass Boosted Competition" },
-  { id: "284Ov7ysmfA", title: "चन्ना मेरेया (Electro Dance Mix)", artist: "DJ Afroz · Arijit Singh", tag: "Heavy Bass Club Mix" },
-  { id: "H5kMiuyRFJU", title: "छलकता हमरो जवनिया (Hard Bass Mix)", artist: "DJ Afroz · Khesari Lal", tag: "DJ Competition Winner" },
-  { id: "Umqb9KENgmk", title: "तुम ही हो (Club House Mix)", artist: "DJ Afroz · Arijit Singh", tag: "Extreme Bass Drop" },
-  { id: "BddP6PYo2gs", title: "केसरिया (Non-Stop Power Beat)", artist: "DJ Afroz · Arijit Singh", tag: "High Energy Dance" },
-  { id: "05QqYs0jz24", title: "केवड़िया के पाला (Remix Power)", artist: "DJ Afroz · Pawan Singh", tag: "Competition Beat" },
-  { id: "zmwfd8x0DrM", title: "मरून कलर सड़िया (Electro DJ)", artist: "DJ Afroz · Neelkamal", tag: "Cyberpunk Dance" },
-  { id: "atVof3pjT-I", title: "कौन तुझे (High Bass Remix)", artist: "DJ Afroz · Palak Muchhal", tag: "Nightclub Drop" },
-  { id: "T94PHkuydcw", title: "कुन फाया कुन (Sufi Trance Mix)", artist: "DJ Afroz · A.R. Rahman", tag: "Trance Power" },
+  { id: "4auB2EP-MZI", title: "लॉलीपॉप लागेलू (Full Bass Boosted DJ Mix)", artist: "DJ Afroz · Pawan Singh", tag: "Heavy Bass Competition" },
+  { id: "zmwfd8x0DrM", title: "मरून कलर सड़िया (Electro Power Vibration)", artist: "DJ Afroz · Neelkamal Singh", tag: "Full Bass Drop" },
+  { id: "H5kMiuyRFJU", title: "छलकता हमरो जवनिया (Hard Bass DJ Remix)", artist: "DJ Afroz · Khesari Lal", tag: "DJ Competition Winner" },
+  { id: "2aMVhBNhAgQ", title: "अखिया लड़ल बा (Bass Boosted Electro)", artist: "DJ Afroz · Pawan Singh", tag: "High Vibration Club Mix" },
+  { id: "05QqYs0jz24", title: "केवड़िया के पाला (Full Bass Competition Drop)", artist: "DJ Afroz · Pawan Singh", tag: "Power Bass Drop" },
+  { id: "FwF9SXuRc6Y", title: "सरसो में इंटर कईलू (Hard Bass Vibration Mix)", artist: "DJ Afroz · Nirahua", tag: "DJ Competition Power" },
+  { id: "z5bd5GTrfqA", title: "कटोरे कटोरे (Full Bass Boosted Club Mix)", artist: "DJ Afroz · Nirahua", tag: "Heavy Bass Boost" },
+  { id: "aaCuaoTbuo0", title: "लोभर कहतिया sorry (High Bass Competition Mix)", artist: "DJ Afroz · Nirahua", tag: "Full Electro Bass" },
+  { id: "99g4HWL8eck", title: "छुवे दs बदन (Vibration Hard Bass Remix)", artist: "DJ Afroz · Khesari Lal", tag: "Extreme Bass Drop" },
 ];
 
 const generate1000 = (baseList: Song[]): Song[] => {
@@ -82,7 +88,7 @@ const generate1000 = (baseList: Song[]): Song[] => {
 
 /**
  * Extensible Master Station Registry
- * Configured with live Vercel production domains.
+ * Configured with YouTube Data API v3 Queries for live catalog updates.
  */
 export const stations: Station[] = [
   {
@@ -96,6 +102,7 @@ export const stations: Station[] = [
     gradientOverlay: "from-black/60 via-black/30 to-black/90",
     domainUrl: "https://bhojpuriyagulam.vercel.app/",
     repoUrl: "https://github.com/asgerali5656/bhojpuriya-star-beats",
+    apiSearchQuery: "Bhojpuri hit songs 2026 Pawan Singh Khesari Lal",
     songs: generate1000(bhojpuriBaseSongs),
   },
   {
@@ -109,6 +116,7 @@ export const stations: Station[] = [
     gradientOverlay: "from-slate-950/75 via-slate-900/40 to-black/95",
     domainUrl: "https://songssite.vercel.app/",
     repoUrl: "https://github.com/asgerali5656/songssite",
+    apiSearchQuery: "Hindi sad songs Arijit Singh KK Sonu Nigam",
     songs: generate1000(hindiSadBaseSongs),
   },
   {
@@ -123,6 +131,7 @@ export const stations: Station[] = [
     posters: [afroz1, afroz2, afroz3, afroz4],
     domainUrl: "https://djafrozpowerzone.vercel.app/",
     repoUrl: "https://github.com/asgerali5656/dj-afroz-power-zone",
+    apiSearchQuery: "Bhojpuri DJ hard bass competition remix",
     songs: generate1000(djAfrozBaseSongs),
   },
 ];
