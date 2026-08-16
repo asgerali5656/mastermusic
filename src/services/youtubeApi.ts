@@ -2,19 +2,25 @@ import { Song } from "@/data/songs";
 
 export const YOUTUBE_API_KEY = "AIzaSyDd957ow_f9i9fiuIo8jZbmfrWVdrr_NnY";
 
-/** Search YouTube live for any query string using YouTube Data API v3 */
-export async function searchYouTubeSongs(query: string, maxResults = 12): Promise<Song[]> {
+export async function searchYouTubeSongs(
+  query: string,
+  maxResults = 50,
+  pageToken = ""
+): Promise<{ songs: Song[]; nextPageToken?: string }> {
   try {
     const encodedQuery = encodeURIComponent(query);
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${maxResults}&q=${encodedQuery}&type=video&key=${YOUTUBE_API_KEY}`;
+    let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${maxResults}&q=${encodedQuery}&type=video&key=${YOUTUBE_API_KEY}`;
+    if (pageToken) {
+      url += `&pageToken=${pageToken}`;
+    }
 
     const res = await fetch(url);
-    if (!res.ok) return [];
+    if (!res.ok) return { songs: [] };
 
     const data = await res.json();
-    if (!data.items) return [];
+    if (!data.items) return { songs: [] };
 
-    return data.items.map((item: any) => ({
+    const songs = data.items.map((item: any) => ({
       id: item.id.videoId,
       title: item.snippet.title
         .replace(/&quot;/g, '"')
@@ -23,10 +29,12 @@ export async function searchYouTubeSongs(query: string, maxResults = 12): Promis
         .replace(/&lt;/g, "<")
         .replace(/&gt;/g, ">"),
       artist: item.snippet.channelTitle || "YouTube Music",
-      tag: "Live YouTube Music",
+      tag: "Live YouTube Stream",
     }));
+
+    return { songs, nextPageToken: data.nextPageToken };
   } catch (err) {
     console.warn("YouTube API search error:", err);
-    return [];
+    return { songs: [] };
   }
 }

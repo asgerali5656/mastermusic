@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUpRight, Heart, Pause, Play, Search, Shuffle, SkipBack, SkipForward, Volume2, X, Music, Sparkles } from "lucide-react";
+import { ArrowUpRight, Heart, Pause, Play, Search, Shuffle, SkipBack, SkipForward, Volume2, X, Music, Sparkles, Radio } from "lucide-react";
 import { FALLBACK_SONG_ID, Song, songs as defaultGlobalSongs } from "@/data/songs";
 import { searchYouTubeSongs } from "@/services/youtubeApi";
 
@@ -10,7 +10,7 @@ const fmt = (s: number) => {
   return `${m}:${r.toString().padStart(2, "0")}`;
 };
 
-const QUEUE_SIZE = 10;
+const QUEUE_SIZE = 15;
 const ONE_HOUR_MS = 60 * 60 * 1000; // 1 hour anti-repeat window
 
 /** Select a unique unplayed song from the specific station's catalog not played within 1 hour and not in current queue */
@@ -37,7 +37,7 @@ const getNextUniqueSong = (
     return validCandidates[rand]!;
   }
 
-  // Fallback: pick oldest played song from this station's catalog
+  // Fallback: pick oldest played song from catalog
   let oldestSong = catalog[0]!;
   let oldestTime = Infinity;
   for (const s of catalog) {
@@ -51,7 +51,7 @@ const getNextUniqueSong = (
   return oldestSong;
 };
 
-/** Populate initial 10-song queue in advance for the station */
+/** Populate initial 15-song queue in advance for the station */
 const fillInitialQueue = (
   songCatalog: Song[],
   initialTrackId: string,
@@ -78,23 +78,28 @@ interface JukeboxPlayerProps {
   onTrackChange?: (index: number) => void;
 }
 
-/** Synchronous Mobile Player Engine with Live YouTube Data API v3 Search & Stream Capabilities */
+/** Synchronous Mobile Player Engine with Seamless Inline Search & Unlimited Live YouTube Streaming */
 export function JukeboxPlayer({ stationSongs, stationId, apiSearchQuery, currentIndex, onTrackChange }: JukeboxPlayerProps) {
   const [catalog, setCatalog] = useState<Song[]>(() => {
     return stationSongs && stationSongs.length > 0 ? stationSongs : defaultGlobalSongs;
   });
 
-  // Fetch live YouTube Data API v3 results for station when available
+  const nextPageTokenRef = useRef<string>("");
+
+  // Unlimited Auto-Expanding Live YouTube Data API Streamer
   useEffect(() => {
     if (!apiSearchQuery) return;
     let isCancelled = false;
 
-    searchYouTubeSongs(apiSearchQuery, 15).then((liveSongs) => {
+    // Fetch 50 live YouTube Data API songs matching station query
+    searchYouTubeSongs(apiSearchQuery, 50).then(({ songs: liveSongs, nextPageToken }) => {
       if (isCancelled || !liveSongs.length) return;
+      if (nextPageToken) nextPageTokenRef.current = nextPageToken;
+
       setCatalog((prev) => {
         const existingIds = new Set(prev.map((s) => s.id));
         const newUnique = liveSongs.filter((s) => !existingIds.has(s.id));
-        return [...newUnique, ...prev];
+        return [...prev, ...newUnique];
       });
     });
 
@@ -110,8 +115,8 @@ export function JukeboxPlayer({ stationSongs, stationId, apiSearchQuery, current
   const consecutiveErrorCountRef = useRef<number>(0);
   const userTouchedRef = useRef<boolean>(false);
 
-  // Search Modal UI state
-  const [showSearchModal, setShowSearchModal] = useState(false);
+  // Inline Search Panel Toggle State (Seamless Within-Page Drawer)
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQueryInput, setSearchQueryInput] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -129,7 +134,7 @@ export function JukeboxPlayer({ stationSongs, stationId, apiSearchQuery, current
     return s;
   });
 
-  // 10-Song Pre-Buffered Queue Array for Station
+  // 15-Song Pre-Buffered Queue Array for Station
   const [upcomingQueue, setUpcomingQueue] = useState<Song[]>(() => {
     return fillInitialQueue(catalog, currentTrack.id, playedHistoryRef.current);
   });
@@ -140,12 +145,17 @@ export function JukeboxPlayer({ stationSongs, stationId, apiSearchQuery, current
   const [duration, setDuration] = useState(0);
   const [requiresUserTap, setRequiresUserTap] = useState(false);
 
-  // Play a specific song directly (e.g. from YouTube search result)
+  // Play a specific song directly from search results
   const playDirectSong = (song: Song) => {
     userTouchedRef.current = true;
     setCurrentTrack(song);
     playedHistoryRef.current.set(song.id, Date.now());
-    setShowSearchModal(false);
+
+    // Add song to catalog if not already present
+    setCatalog((prev) => {
+      if (prev.some((s) => s.id === song.id)) return prev;
+      return [song, ...prev];
+    });
 
     try {
       const p = playerRef.current;
@@ -163,17 +173,17 @@ export function JukeboxPlayer({ stationSongs, stationId, apiSearchQuery, current
     }
   };
 
-  // Perform live YouTube API search
-  const handleSearchSubmit = async (e: React.FormEvent) => {
+  // Perform live YouTube API search for inline drawer
+  const handleInlineSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQueryInput.trim()) return;
     setIsSearching(true);
-    const results = await searchYouTubeSongs(searchQueryInput.trim(), 10);
+    const { songs: results } = await searchYouTubeSongs(searchQueryInput.trim(), 20);
     setSearchResults(results);
     setIsSearching(false);
   };
 
-  // Advance to next song by popping front of 10-song queue & replenishing back of queue from station catalog
+  // Advance to next song by popping front of queue & replenishing back of queue
   const advanceToNextTrack = useCallback(() => {
     if (bufferWatchdogRef.current) {
       clearTimeout(bufferWatchdogRef.current);
@@ -216,7 +226,7 @@ export function JukeboxPlayer({ stationSongs, stationId, apiSearchQuery, current
           // ignore storage errors
         }
 
-        // Replenish queue to keep exactly 10 songs in advance for station
+        // Replenish queue to keep exactly 15 songs in advance for station
         const newReplenishment = getNextUniqueSong(
           catalog,
           playedHistoryRef.current,
@@ -481,10 +491,76 @@ export function JukeboxPlayer({ stationSongs, stationId, apiSearchQuery, current
         </button>
       )}
 
-      {/* Container for Credit and Player Bar */}
-      <div className="flex w-full flex-col items-center justify-center gap-3.5 sm:gap-3">
+      {/* Container for Player, Search Panel, and Credit */}
+      <div className="flex w-full flex-col items-center justify-center gap-3">
+        {/* Seamless Within-Page Inline Search Drawer (expands inline directly above player) */}
+        {isSearchExpanded && (
+          <div className="w-[min(94vw,36rem)] overflow-hidden rounded-3xl border border-white/20 bg-slate-900/90 p-4 shadow-2xl backdrop-blur-2xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-3">
+            <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2.5">
+              <span className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
+                <Sparkles className="h-4 w-4 text-amber-400" />
+                <span>YouTube Live Search</span>
+                <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+                  {catalog.length} Songs Loaded
+                </span>
+              </span>
+              <button
+                onClick={() => setIsSearchExpanded(false)}
+                className="rounded-full bg-white/10 p-1 text-white/80 hover:bg-white/20"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleInlineSearchSubmit} className="mb-3 flex gap-2">
+              <input
+                type="text"
+                value={searchQueryInput}
+                onChange={(e) => setSearchQueryInput(e.target.value)}
+                placeholder="Search any song or singer on YouTube (उदा. Pawan Singh, Arijit Singh)..."
+                className="flex-1 rounded-xl border border-white/20 bg-black/60 px-3.5 py-2 text-xs text-white placeholder-white/40 focus:border-amber-400 focus:outline-none"
+              />
+              <button
+                type="submit"
+                disabled={isSearching}
+                className="rounded-xl bg-white text-black px-4 py-2 text-xs font-bold shadow-md transition-transform hover:scale-105 disabled:opacity-50"
+              >
+                {isSearching ? "Searching..." : "Search"}
+              </button>
+            </form>
+
+            <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+              {searchResults.length === 0 && !isSearching && (
+                <p className="text-center text-[11px] text-white/50 py-3">
+                  Type any song or artist name above to search live from YouTube Data API!
+                </p>
+              )}
+              {searchResults.map((song) => (
+                <div
+                  key={song.id}
+                  onClick={() => playDirectSong(song)}
+                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 cursor-pointer transition-all hover:bg-white/15 hover:border-amber-400/50"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400">
+                      <Music className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-bold text-white">{song.title}</p>
+                      <p className="truncate text-[10px] text-white/60">{song.artist}</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300 shrink-0 ml-2">
+                    PLAY ▶
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Centered Creator Credit positioned comfortably above player bar */}
-        <div className="mb-1 flex items-center justify-center gap-1.5 text-xs text-white/95 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] sm:text-xs">
+        <div className="mb-0.5 flex items-center justify-center gap-1.5 text-xs text-white/95 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] sm:text-xs">
           <span className="inline-flex items-center gap-1 font-medium tracking-wide">
             Made with <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500 animate-pulse" /> by
           </span>
@@ -508,7 +584,12 @@ export function JukeboxPlayer({ stationSongs, stationId, apiSearchQuery, current
               <span className="h-2 w-2 shrink-0 rounded-full bg-primary animate-pulse" />
               <p className="truncate text-xs font-bold text-foreground sm:text-base">{currentTrack.title}</p>
             </div>
-            <p className="truncate text-[11px] text-muted-foreground sm:text-xs">{currentTrack.artist}</p>
+            <div className="flex items-center gap-2">
+              <p className="truncate text-[11px] text-muted-foreground sm:text-xs">{currentTrack.artist}</p>
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold text-amber-300 uppercase tracking-wider">
+                {catalog.length} Songs Stream
+              </span>
+            </div>
             
             <div
               onClick={seek}
@@ -527,11 +608,15 @@ export function JukeboxPlayer({ stationSongs, stationId, apiSearchQuery, current
           </div>
 
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-            {/* Live YouTube Search Button */}
+            {/* Seamless Inline Within-Page Search Drawer Toggle */}
             <button
-              onClick={() => setShowSearchModal(true)}
+              onClick={() => setIsSearchExpanded((prev) => !prev)}
               title="Search Any Song on YouTube (कोई भी गाना खोजीं)"
-              className="rounded-full p-1.5 sm:p-2 text-rose-400 transition-all hover:bg-rose-500/20 hover:scale-110"
+              className={`rounded-full p-1.5 sm:p-2 transition-all ${
+                isSearchExpanded
+                  ? "bg-amber-400 text-black scale-105 shadow-md"
+                  : "text-amber-400 hover:bg-amber-400/20 hover:scale-110"
+              }`}
             >
               <Search className="h-4 w-4 sm:h-4 sm:w-4" />
             </button>
@@ -566,71 +651,6 @@ export function JukeboxPlayer({ stationSongs, stationId, apiSearchQuery, current
           </div>
         </div>
       </div>
-
-      {/* Live YouTube Search Modal */}
-      {showSearchModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-xl">
-          <div className="relative w-full max-w-xl rounded-2xl border border-white/20 bg-slate-900/95 p-5 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-amber-400" />
-                SEARCH ANY SONG ON YOUTUBE
-              </h2>
-              <button
-                onClick={() => setShowSearchModal(false)}
-                className="rounded-full bg-white/10 p-1.5 text-white/80 hover:bg-white/20"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSearchSubmit} className="mb-4 flex gap-2">
-              <input
-                type="text"
-                value={searchQueryInput}
-                onChange={(e) => setSearchQueryInput(e.target.value)}
-                placeholder="Type song name or artist (उदा. Pawan Singh, Arijit Singh)..."
-                className="flex-1 rounded-xl border border-white/20 bg-black/50 px-4 py-2.5 text-sm text-white placeholder-white/40 focus:border-amber-400 focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={isSearching}
-                className="rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground shadow-lg transition-transform hover:scale-105 disabled:opacity-50"
-              >
-                {isSearching ? "Searching..." : "Search"}
-              </button>
-            </form>
-
-            <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
-              {searchResults.length === 0 && !isSearching && (
-                <p className="text-center text-xs text-white/50 py-6">
-                  Type any song or artist name above to search live from YouTube Data API!
-                </p>
-              )}
-              {searchResults.map((song) => (
-                <div
-                  key={song.id}
-                  onClick={() => playDirectSong(song)}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3 cursor-pointer transition-all hover:bg-white/15 hover:border-amber-400/50"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400">
-                      <Music className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-bold text-white">{song.title}</p>
-                      <p className="truncate text-[10px] text-white/60">{song.artist}</p>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-amber-500/20 px-2.5 py-1 text-[10px] font-bold text-amber-300 shrink-0 ml-2">
-                    PLAY LIVE ▶
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
