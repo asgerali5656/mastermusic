@@ -22,7 +22,7 @@ export type Station = {
   themeColor: string; // CSS color string for active state / eq
   gradientOverlay: string;
   posters?: string[];
-  domainUrl?: string; // Dedicated custom domain for domain-based micro-frontend calling
+  domainUrl?: string; // Dedicated live Vercel production domain
   repoUrl?: string;   // GitHub repository URL
   songs: Song[];
 };
@@ -82,7 +82,7 @@ const generate1000 = (baseList: Song[]): Song[] => {
 
 /**
  * Extensible Master Station Registry
- * To add a new radio channel in the future, simply push a new Station object here!
+ * Configured with live Vercel production domains.
  */
 export const stations: Station[] = [
   {
@@ -94,7 +94,7 @@ export const stations: Station[] = [
     badge: "🔥 BHOJPURI HITS",
     themeColor: "#f97316", // Amber / Orange
     gradientOverlay: "from-black/60 via-black/30 to-black/90",
-    domainUrl: "https://bhojpuriya.vercel.app",
+    domainUrl: "https://bhojpuriyagulam.vercel.app/",
     repoUrl: "https://github.com/asgerali5656/bhojpuriya-star-beats",
     songs: generate1000(bhojpuriBaseSongs),
   },
@@ -107,7 +107,7 @@ export const stations: Station[] = [
     badge: "💔 HINDI SAD RADIO",
     themeColor: "#f43f5e", // Rose / Crimson
     gradientOverlay: "from-slate-950/75 via-slate-900/40 to-black/95",
-    domainUrl: "https://dardedil.vercel.app",
+    domainUrl: "https://songssite.vercel.app/",
     repoUrl: "https://github.com/asgerali5656/songssite",
     songs: generate1000(hindiSadBaseSongs),
   },
@@ -121,7 +121,7 @@ export const stations: Station[] = [
     themeColor: "#06b6d4", // Electric Cyan
     gradientOverlay: "from-slate-950/80 via-cyan-950/40 to-black/95",
     posters: [afroz1, afroz2, afroz3, afroz4],
-    domainUrl: "https://djafroz.vercel.app",
+    domainUrl: "https://djafrozpowerzone.vercel.app/",
     repoUrl: "https://github.com/asgerali5656/dj-afroz-power-zone",
     songs: generate1000(djAfrozBaseSongs),
   },

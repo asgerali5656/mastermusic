@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { stations, Station } from "@/data/stations";
 import { JukeboxPlayer } from "@/components/JukeboxPlayer";
-import { ChevronLeft, ChevronRight, Sparkles, X, Image as ImageIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, X, Image as ImageIcon, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -143,16 +143,31 @@ function Index() {
           })}
         </div>
 
-        {/* DJ Afroz Poster Gallery Trigger (Visible when DJ Afroz station active) */}
-        {activeStation.id === "dj-afroz" && (
-          <button
-            onClick={() => setShowPosterGallery(true)}
-            className="flex items-center gap-1.5 rounded-full border border-cyan-500/50 bg-cyan-950/70 px-3 py-1 text-xs font-bold text-cyan-300 backdrop-blur-md transition-all hover:scale-105 shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-          >
-            <ImageIcon className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">AFROZ POSTERS</span>
-          </button>
-        )}
+        {/* Action Buttons: Independent Site Domain Link & Afroz Poster Gallery */}
+        <div className="flex items-center gap-2">
+          {activeStation.domainUrl && (
+            <a
+              href={activeStation.domainUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`Open ${activeStation.name} Standalone Site`}
+              className="flex items-center gap-1.5 rounded-full border border-white/30 bg-black/60 px-3 py-1 text-xs font-semibold text-white/90 backdrop-blur-md transition-all hover:bg-white/20 hover:scale-105 shadow-md"
+            >
+              <span>DOMAIN</span>
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+
+          {activeStation.id === "dj-afroz" && (
+            <button
+              onClick={() => setShowPosterGallery(true)}
+              className="flex items-center gap-1.5 rounded-full border border-cyan-500/50 bg-cyan-950/70 px-3 py-1 text-xs font-bold text-cyan-300 backdrop-blur-md transition-all hover:scale-105 shadow-[0_0_15px_rgba(6,182,212,0.4)]"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AFROZ POSTERS</span>
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Center Hero Title Section with Left/Right Swipe Arrow Buttons */}
