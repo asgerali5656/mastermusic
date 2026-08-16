@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Heart, Pause, Play, Shuffle, SkipBack, SkipForward, Volume2 } from "lucide-react";
-import { FALLBACK_SONG_ID, Song, songs } from "@/data/songs";
+import { FALLBACK_SONG_ID, Song, songs as defaultGlobalSongs } from "@/data/songs";
 
 const fmt = (s: number) => {
   if (!Number.isFinite(s) || s < 0) return "0:00";
@@ -12,18 +12,20 @@ const fmt = (s: number) => {
 const QUEUE_SIZE = 10;
 const ONE_HOUR_MS = 60 * 60 * 1000; // 1 hour anti-repeat window
 
-/** Select a unique unplayed song not played within 1 hour and not in current queue */
+/** Select a unique unplayed song from the specific station's catalog not played within 1 hour and not in current queue */
 const getNextUniqueSong = (
+  songCatalog: Song[],
   history: Map<string, number>,
   currentQueue: Song[],
   currentTrackId?: string
 ): Song => {
+  const catalog = songCatalog && songCatalog.length > 0 ? songCatalog : defaultGlobalSongs;
   const now = Date.now();
   const queuedIds = new Set(currentQueue.map((s) => s.id));
   if (currentTrackId) queuedIds.add(currentTrackId);
 
-  // Filter candidate songs not played in 1 hour and not currently queued
-  const validCandidates = songs.filter((s) => {
+  // Filter candidate songs from this station not played in 1 hour and not currently queued
+  const validCandidates = catalog.filter((s) => {
     if (queuedIds.has(s.id)) return false;
     const lastPlayed = history.get(s.id);
     return !lastPlayed || now - lastPlayed >= ONE_HOUR_MS;
@@ -34,10 +36,10 @@ const getNextUniqueSong = (
     return validCandidates[rand]!;
   }
 
-  // Fallback: pick oldest played song not in current queue
-  let oldestSong = songs[0]!;
+  // Fallback: pick oldest played song from this station's catalog
+  let oldestSong = catalog[0]!;
   let oldestTime = Infinity;
-  for (const s of songs) {
+  for (const s of catalog) {
     if (queuedIds.has(s.id)) continue;
     const t = history.get(s.id) ?? 0;
     if (t < oldestTime) {
@@ -48,44 +50,36 @@ const getNextUniqueSong = (
   return oldestSong;
 };
 
-/** Populate initial 10-song queue in advance */
+/** Populate initial 10-song queue in advance for the station */
 const fillInitialQueue = (
+  songCatalog: Song[],
   initialTrackId: string,
   history: Map<string, number>
 ): Song[] => {
   const queue: Song[] = [];
   for (let i = 0; i < QUEUE_SIZE; i++) {
-    const nextSong = getNextUniqueSong(history, queue, initialTrackId);
+    const nextSong = getNextUniqueSong(songCatalog, history, queue, initialTrackId);
     queue.push(nextSong);
   }
   return queue;
 };
 
-const getInitialSongIndex = (): number => {
-  if (typeof window === "undefined") return 0;
-  try {
-    const saved = localStorage.getItem("bhopuriyaghulam_last_song_idx");
-    if (saved !== null) {
-      const lastIdx = parseInt(saved, 10);
-      if (!isNaN(lastIdx) && lastIdx >= 0 && lastIdx < songs.length) {
-        let rand = Math.floor(Math.random() * songs.length);
-        if (rand === lastIdx) rand = (rand + 1) % songs.length;
-        return rand;
-      }
-    }
-  } catch (e) {
-    // localStorage fallback
-  }
-  return Math.floor(Math.random() * songs.length);
+const getInitialSongIndex = (catalog: Song[]): number => {
+  if (typeof window === "undefined" || !catalog.length) return 0;
+  return Math.floor(Math.random() * catalog.length);
 };
 
 interface JukeboxPlayerProps {
+  stationSongs?: Song[];
+  stationId?: string;
   currentIndex?: number;
   onTrackChange?: (index: number) => void;
 }
 
-/** Synchronous Mobile Player Engine with Zero-Delay Touch Execution */
-export function JukeboxPlayer({ currentIndex, onTrackChange }: JukeboxPlayerProps) {
+/** Synchronous Mobile Player Engine bound strictly to station-specific song catalog */
+export function JukeboxPlayer({ stationSongs, stationId, currentIndex, onTrackChange }: JukeboxPlayerProps) {
+  const catalog = stationSongs && stationSongs.length > 0 ? stationSongs : defaultGlobalSongs;
+
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
 
@@ -96,19 +90,19 @@ export function JukeboxPlayer({ currentIndex, onTrackChange }: JukeboxPlayerProp
   // Map of song ID -> timestamp played (in ms) to enforce 1-hour anti-repeat
   const playedHistoryRef = useRef<Map<string, number>>(new Map());
 
-  // Active playing track
+  // Active playing track from station catalog
   const [currentTrack, setCurrentTrack] = useState<Song>(() => {
-    const initIdx = typeof currentIndex === "number" && currentIndex >= 0 && currentIndex < songs.length
+    const initIdx = typeof currentIndex === "number" && currentIndex >= 0 && currentIndex < catalog.length
       ? currentIndex
-      : getInitialSongIndex();
-    const s = songs[initIdx] || songs[0]!;
+      : getInitialSongIndex(catalog);
+    const s = catalog[initIdx] || catalog[0]!;
     playedHistoryRef.current.set(s.id, Date.now());
     return s;
   });
 
-  // 10-Song Pre-Buffered Queue Array
+  // 10-Song Pre-Buffered Queue Array for Station
   const [upcomingQueue, setUpcomingQueue] = useState<Song[]>(() => {
-    return fillInitialQueue(currentTrack.id, playedHistoryRef.current);
+    return fillInitialQueue(catalog, currentTrack.id, playedHistoryRef.current);
   });
 
   const [ready, setReady] = useState(false);
@@ -117,7 +111,7 @@ export function JukeboxPlayer({ currentIndex, onTrackChange }: JukeboxPlayerProp
   const [duration, setDuration] = useState(0);
   const [requiresUserTap, setRequiresUserTap] = useState(false);
 
-  // Advance to next song by popping front of 10-song queue & replenishing back of queue
+  // Advance to next song by popping front of 10-song queue & replenishing back of queue from station catalog
   const advanceToNextTrack = useCallback(() => {
     if (bufferWatchdogRef.current) {
       clearTimeout(bufferWatchdogRef.current);
@@ -127,7 +121,7 @@ export function JukeboxPlayer({ currentIndex, onTrackChange }: JukeboxPlayerProp
     setUpcomingQueue((prevQueue) => {
       let queue = prevQueue;
       if (queue.length === 0) {
-        queue = fillInitialQueue(currentTrack.id, playedHistoryRef.current);
+        queue = fillInitialQueue(catalog, currentTrack.id, playedHistoryRef.current);
       }
 
       const [nextSong, ...restQueue] = queue;
@@ -152,17 +146,17 @@ export function JukeboxPlayer({ currentIndex, onTrackChange }: JukeboxPlayerProp
         }
 
         try {
-          const songIdx = songs.findIndex((s) => s.id === nextSong.id);
+          const songIdx = catalog.findIndex((s) => s.id === nextSong.id);
           if (songIdx >= 0) {
-            localStorage.setItem("bhopuriyaghulam_last_song_idx", songIdx.toString());
             onTrackChange?.(songIdx);
           }
         } catch (e) {
           // ignore storage errors
         }
 
-        // Replenish queue to keep exactly 10 songs in advance
+        // Replenish queue to keep exactly 10 songs in advance for station
         const newReplenishment = getNextUniqueSong(
+          catalog,
           playedHistoryRef.current,
           restQueue,
           nextSong.id
@@ -171,7 +165,7 @@ export function JukeboxPlayer({ currentIndex, onTrackChange }: JukeboxPlayerProp
       }
       return prevQueue;
     });
-  }, [currentTrack.id, onTrackChange]);
+  }, [catalog, currentTrack.id, onTrackChange]);
 
   const prev = useCallback(() => {
     userTouchedRef.current = true;
